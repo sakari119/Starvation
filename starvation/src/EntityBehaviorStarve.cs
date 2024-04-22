@@ -129,11 +129,12 @@ namespace Starvation
             bh.MaxHealthModifiers["nutrientHealthMod"] = 0;
 
             // Slower health regeneration if starving (only if client player)
-            if (IsSelf)
-            {
-                double baseRegenSpeed = entity.Api.World.Config.GetString("playerHealthRegenSpeed", "1").ToFloat();
-                bh._playerHealthRegenSpeed = (float) (baseRegenSpeed * HealthRegenPenalty());
-            }
+            // Im malding with this regen speed so I am replacing it with vanilla thru satuation controll -sakari
+            //if (IsSelf)
+            //{
+            //    double baseRegenSpeed = entity.Api.World.Config.GetString("playerHealthRegenSpeed", "1").ToFloat();
+            //    bh._playerHealthRegenSpeed = (float) (baseRegenSpeed * HealthRegenPenalty());
+            //}
 
             // Slower movement speed if starving
             entity.Stats.Set("walkspeed", "starvationmod", -1 * MoveSpeedPenalty(), false);
@@ -216,12 +217,55 @@ namespace Starvation
 
         // Reset vanilla satiety to a constant value, effectively disabling vanilla hunger system.
         // The value must be less than MaxSaturation, to allow meals to be consumed.
+        // Saturation Controll that emulaties controll and allows for player to see saturation w/out gui -Sakari
+        // Also le funny ai code -Sakari
         private void ResetHunger()
         {
+            double daysOfEnergyReserves = energyReserves / CalculateDailyEnergyUse();
+            float saturation;
+        
+            if (daysOfEnergyReserves <= 3) // Linear region
+            {
+                saturation = 100 + (float)(650 * (daysOfEnergyReserves / 3)); // 100 to 750 over 3 days
+            }
+            else // Exponential region
+            {
+                // Mapping days to saturation percentage via an exponential curve
+                // Idk you can muckarounf with the value here to make it more *accurate* -Sakari
+                double baseSaturation = 750; // Saturation at day 3
+                double saturationAt5Days = 1200; // 80% of 1500
+                double saturationAt14Days = 1350; // 90% of 1500
+                double saturationAt30Days = 1500; // 100% of 1500
+        
+                double k; // Exponential growth rate
+                if (daysOfEnergyReserves <= 5)
+                {
+                    // Calculate growth rate based on reaching 80% at day 5
+                    k = Math.Log(saturationAt5Days / baseSaturation) / 2; // 2 days beyond the linear region
+                    saturation = (float)(baseSaturation * Math.Exp(k * (daysOfEnergyReserves - 3)));
+                }
+                else if (daysOfEnergyReserves <= 14)
+                {
+                    // Calculate growth rate based on reaching 90% at day 14
+                    k = Math.Log(saturationAt14Days / saturationAt5Days) / 9; // 9 days between day 5 and day 14
+                    saturation = (float)(saturationAt5Days * Math.Exp(k * (daysOfEnergyReserves - 5)));
+                }
+                else
+                {
+                    // Calculate growth rate based on reaching 100% at day 30
+                    k = Math.Log(saturationAt30Days / saturationAt14Days) / 16; // 16 days between day 14 and day 30
+                    saturation = (float)(saturationAt14Days * Math.Exp(k * (daysOfEnergyReserves - 14)));
+                }
+            }
+        
+            // Ensure saturation does not exceed maximum
+            saturation = Math.Min(saturation, 1400);
+        
+            // Apply the calculated saturation
             EntityBehaviorHunger bhunger = entity.GetBehavior<EntityBehaviorHunger>();
             if (bhunger != null)
             {
-                bhunger.Saturation = 100;  
+                bhunger.Saturation = saturation;
             }
         }
 
