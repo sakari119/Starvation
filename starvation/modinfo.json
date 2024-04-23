@@ -3,7 +3,8 @@
     "modid": "starvation",
     "name": "Starvation",
     "authors": [
-        "trollusk"
+        "trollusk",
+        "sakari119"
     ],
     "description": "Realistic replacement for the Vanilla hunger system, based on human physiology.",
     "version": "1.0.5",

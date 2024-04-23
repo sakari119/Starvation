@@ -258,7 +258,7 @@ namespace Starvation
                 }
             }
         
-            // Ensure saturation does not exceed maximum
+            // Ensure saturation does not exceed maximum leaving space to eat food
             saturation = Math.Min(saturation, 1400);
         
             // Apply the calculated saturation
